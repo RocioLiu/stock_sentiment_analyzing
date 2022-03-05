@@ -2,6 +2,7 @@ import numpy as np
 from collections import Counter
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+from sklearn.metrics import f1_score
 
 import torch
 from torch.utils.data import DataLoader
@@ -21,11 +22,12 @@ import src
 importlib.reload(src)
 
 
-def train_fcn(train_dataloader, valid_dataloader, train_batch_size, valid_batch_size,
-             model, optimizer, scheduler, device, grad_clip, epoch, steps, every_n_step):
+def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_size,
+                model, optimizer, scheduler, device, grad_clip, epoch, steps,
+                every_n_step, history_dict):
     model.train()
 
-    valid_steps = len(valid_dataloader)
+    # val_steps = len(val_dataloader)
 
     train_progress_bar = tqdm(train_dataloader, desc=f"Epoch: {epoch}",
                               leave=False, disable=False)
@@ -50,14 +52,22 @@ def train_fcn(train_dataloader, valid_dataloader, train_batch_size, valid_batch_
         optimizer.step()
         scheduler.step()
 
+        # for name, param in model.named_parameters():
+        #     if param.requires_grad:
+        #         print(name, '\n', param.size(), '\n', param.data, '\n\n')
+
+
         if steps % every_n_step == 0:
             model.eval()
+            y_true_list = []
+            y_pred_list = []
 
-            total_valid_loss = 0
+            val_losses = []
+            val_accuracy = []
 
-            for data in valid_dataloader:
+            for data in val_dataloader:
 
-                val_hidden = model.init_hidden(valid_batch_size)
+                val_hidden = model.init_hidden(val_batch_size)
 
                 for k, v in data.items():
                     data[k] = v.to(device)
@@ -68,23 +78,41 @@ def train_fcn(train_dataloader, valid_dataloader, train_batch_size, valid_batch_
                 # val_hidden = tuple([each.data for each in val_hidden])
 
                 with torch.no_grad():
-                    valid_logits, val_hidden, valid_loss = model(val_hidden, **data)
+                    val_logits, val_hidden, val_loss = model(val_hidden, **data)
 
-                total_valid_loss += valid_loss.item()
+                val_losses.append(val_loss.item())
 
                 # (batch_size, output_size)
-                output_ps = torch.exp(valid_logits)
+                output_ps = torch.exp(val_logits)
                 # (batch_size)
-                pred = np.argmax(output_ps.detach().cpu().numpy(), axis=1)
+                preds = np.argmax(output_ps.detach().cpu().numpy(), axis=1)
 
                 labels = data['labels'].detach().cpu().numpy()
-                num_correct = sum(pred == labels)
-                accuracy = num_correct / len(labels)
+                num_correct = sum(preds == labels)
+                val_accuracy.append(num_correct / len(labels))
 
+                y_true_list.append(labels)
+                y_pred_list.append(preds)
 
+            avg_val_loss = sum(val_losses) / len(val_losses)
+            avg_val_accuracy = sum(val_accuracy) / len(val_accuracy)
 
+            y_true_array = np.concatenate(y_true_list)
+            y_pred_array = np.concatenate(y_pred_list)
+            val_f1 = f1_score(y_true_array, y_pred_array, average='weighted')
 
+            history_dict['step'].append(steps)
+            history_dict['train_loss'].append(train_loss.item())
+            history_dict['val_loss'].append(avg_val_loss)
+            history_dict['val_acc'].append(avg_val_accuracy)
+            history_dict['val_f1'].append(val_f1)
 
+            print(f"\nEpoch: {epoch}/{config.EPOCHS}    step: {steps}")
+            print(f"- train_loss: {train_loss.item():.4f} - val_loss: {avg_val_loss:.4f}\n"
+                  f"- val_f1: {val_f1:.4f} \n")
+
+    # return the last eval_f1 after traverse an epoch
+    return steps, val_f1, history_dict
 
 
 def main():
@@ -135,7 +163,7 @@ def main():
         pad_on_right=True
     )
 
-    valid_dataset = SentimentDataset(
+    val_dataset = SentimentDataset(
         texts=val_features,
         labels=val_labels,
         vocab_to_id=vocab_to_id,
@@ -148,13 +176,13 @@ def main():
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=config.TRAIN_BATCH_SIZE,
-        num_workers=4
+        shuffle=True, drop_last=True
     )
 
-    valid_dataloader = DataLoader(
-        valid_dataset,
-        batch_size=config.VALID_BATCH_SIZE,
-        num_workers=1
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=config.VAL_BATCH_SIZE,
+        shuffle=True, drop_last=True
     )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -183,10 +211,32 @@ def main():
     NUM_TRAIN_STEPS = int(len(train_dataloader) * config.EPOCHS)
     NUM_WARMUP_STEPS = int(NUM_TRAIN_STEPS * config.WARMUP_PROPORTION)
     scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps=NUM_WARMUP_STEPS,
+                                                num_warmup_steps=0,
                                                 num_training_steps=NUM_TRAIN_STEPS,
                                                 last_epoch=-1)
 
+    # -- training process --
+    best_f1 = 0
+    steps = 0
+    history_dict = {"step": [],
+                    "train_loss": [],
+                    "val_loss": [],
+                    "val_f1": []}
 
+    for epoch in tqdm(range(1, config.EPOCHS + 1)):
+        steps, val_f1, history_dict = training_fn(train_dataloader,
+                                                val_dataloader,
+                                                config.TRAIN_BATCH_SIZE,
+                                                config.VAL_BATCH_SIZE,
+                                                model, optimizer,
+                                                scheduler, device,
+                                                config.GRAD_CLIP,
+                                                epoch, steps,
+                                                config.EVERY_N_STEP,
+                                                history_dict)
+
+        if val_f1 > best_f1:
+            torch.save(model.state_dict(), config.MODEL_PATH)
+            best_f1 = val_f1
 
 
