@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.nn import CrossEntropyLoss
+from torch.nn import NLLLoss
 import torch.nn.functional as F
 
 from src import config
@@ -108,7 +108,7 @@ class SentimentClassifier(nn.Module):
 
         # loss = loss_fn(logps, labels, attention_mask, self.num_labels)
 
-        loss_fcn = CrossEntropyLoss()
+        loss_fcn = NLLLoss()
         loss = loss_fcn(logps, labels)
 
         return logps, hidden_state, loss
