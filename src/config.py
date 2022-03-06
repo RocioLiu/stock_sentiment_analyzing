@@ -49,3 +49,6 @@ LSTM_SIZE = 512
 OUTPUT_SIZE = 5
 LSTM_LAYER = 2
 DROP_RATE = 0.2
+
+MSG1 = "Google is working on self driving cars, I'm bullish on $goog"
+MSG2 = "$MSFT to acquire $ATVI"

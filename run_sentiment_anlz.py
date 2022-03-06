@@ -117,13 +117,14 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
     return steps, val_f1, history_dict
 
 
-def predict_fn(text, model, vocab_to_id, cls_id, sep_id):
+def predict_fn(text, model, vocab_to_id, cls_id, sep_id) -> int:
     """
     Make a prediction on a single sentence.
     Args:
         text: str. A message.
+    returns:
+        pred: the sentiment score of this text
     """
-    text = "Google is working on self driving cars, I'm bullish on $goog"
     tokens = preprocess(text)
 
     # Filter non-vocab words
@@ -137,7 +138,12 @@ def predict_fn(text, model, vocab_to_id, cls_id, sep_id):
 
     # Get the NN output
     hidden = model.init_hidden(1)
-    model(hidden, input_ids, attention_mask=None, labels)
+    logps, _, _ = model(hidden, input_ids, None, None)
+
+    output_ps = torch.exp(logps)
+    pred = np.argmax(output_ps.detach().cpu().numpy())
+
+    return pred
 
 
 
@@ -286,13 +292,20 @@ def main():
     model.load_state_dict(checkpoint)
     model.to(device)
 
-    with open(config.TEST_FILE, 'r') as json_file:
-        data_dict = json.load(json_file)
+    # with open(config.TEST_FILE, 'r') as json_file:
+    #     data_dict = json.load(json_file)
+    #
+    # test_msgs = [data['message_body'] for data in data_dict['data']]
+    # tokenized_test_msgs = [preprocess(msg) for msg in test_msgs]
+    # filtered_test_msgs = [[word for word in token_msg if word in vocab_to_id]
+    #                       for token_msg in tokenized_test_msgs]
 
-    test_msgs = [data['message_body'] for data in data_dict['data']]
-    tokenized_test_msgs = [preprocess(msg) for msg in test_msgs]
-    filtered_test_msgs = [[word for word in token_msg if word in vocab_to_id]
-                          for token_msg in tokenized_test_msgs]
+
+    print(config.MSG1)
+    print(f"sentiment: {predict_fn(config.MSG1, model, vocab_to_id, config.CLS_ID, config.SEP_ID)}")
+
+    print(config.MSG2)
+    print(f"sentiment: {predict_fn(config.MSG2, model, vocab_to_id, config.CLS_ID, config.SEP_ID)}")
 
 
 
