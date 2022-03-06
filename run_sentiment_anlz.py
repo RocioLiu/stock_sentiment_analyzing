@@ -17,11 +17,10 @@ from src.optimizer import AdamW
 from src.lr_scheduler import get_linear_schedule_with_warmup
 
 
-import importlib
-importlib.reload(config)
-import src
-importlib.reload(src)
-
+# import importlib
+# importlib.reload(config)
+# import src
+# importlib.reload(src)
 
 
 def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_size,
@@ -117,7 +116,7 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
     return steps, val_f1, history_dict
 
 
-def predict_fn(text, model, vocab_to_id, cls_id, sep_id) -> int:
+def predict_fn(text, model, vocab_to_id, cls_id, sep_id, device) -> int:
     """
     Make a prediction on a single sentence.
     Args:
@@ -136,9 +135,16 @@ def predict_fn(text, model, vocab_to_id, cls_id, sep_id) -> int:
     # Adding a batch dimension
     input_ids = torch.from_numpy(np.array(token_ids)).unsqueeze(-1)
 
-    # Get the NN output
     hidden = model.init_hidden(1)
-    logps, _, _ = model(hidden, input_ids, None, None)
+
+    input_ids.to(device)
+
+    for h in hidden:
+        h.to(device)
+
+    # Get the NN output
+    with torch.no_grad():
+        logps, _, _ = model(hidden, input_ids, None, None)
 
     output_ps = torch.exp(logps)
     pred = np.argmax(output_ps.detach().cpu().numpy())
@@ -303,10 +309,14 @@ def main():
 
 
     print(config.MSG1)
-    print(f"sentiment: {predict_fn(config.MSG1, model, vocab_to_id, config.CLS_ID, config.SEP_ID)}")
+    print(f"sentiment: {predict_fn(config.MSG1, model, vocab_to_id, config.CLS_ID, config.SEP_ID, device)}")
 
     print(config.MSG2)
-    print(f"sentiment: {predict_fn(config.MSG2, model, vocab_to_id, config.CLS_ID, config.SEP_ID)}")
+    print(f"sentiment: {predict_fn(config.MSG2, model, vocab_to_id, config.CLS_ID, config.SEP_ID, device)}")
+
+
+if __name__ == "__main__":
+    main()
 
 
 

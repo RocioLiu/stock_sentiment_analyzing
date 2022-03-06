@@ -1,6 +1,5 @@
 # import pandas as pd
 import json
-import nltk
 import re
 import random
 from collections import Counter
@@ -8,9 +7,9 @@ from typing import List, Dict, Tuple, Counter, Union
 
 from . import config
 # from src import config
-
-# nltk.download('wordnet')
-nltk.download('omw-1.4')
+import nltk
+nltk.download('wordnet')
+# nltk.download('omw-1.4')
 
 # import importlib
 # importlib.reload(config)
