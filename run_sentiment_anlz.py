@@ -255,6 +255,7 @@ def main():
     history_dict = {"step": [],
                     "train_loss": [],
                     "val_loss": [],
+                    "val_acc": [],
                     "val_f1": []}
 
     for epoch in tqdm(range(1, config.EPOCHS + 1)):
