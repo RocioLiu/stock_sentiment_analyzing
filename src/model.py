@@ -108,8 +108,11 @@ class SentimentClassifier(nn.Module):
 
         # loss = loss_fn(logps, labels, attention_mask, self.num_labels)
 
-        loss_fn = NLLLoss()
-        loss = loss_fn(logps, labels)
+        if labels is not None:
+            loss_fn = NLLLoss()
+            loss = loss_fn(logps, labels)
+        else:
+            loss = None
 
         return logps, hidden_state, loss
 

@@ -38,7 +38,7 @@ class SentimentDataset(Dataset):
         # max_len = self.get_max_len()
         max_len = self.max_len
         input_ids = input_ids[:max_len - 2]
-        input_ids = [cls_id] + input_ids + [sep_id] # [CLS] + input_ids + [SEP]
+        input_ids = [self.cls_id] + input_ids + [self.sep_id] # [CLS] + input_ids + [SEP]
 
         # attention masks
         # only the real token with value 1 are attends to, and the other

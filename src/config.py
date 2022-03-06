@@ -7,10 +7,15 @@ ROOT_DIR = join(*split(abspath(dirname(__file__)))[:-1])
 # ROOT_DIR = abspath(dirname(__file__))
 
 
-BASE_MODEL_PATH = "../inputs/bert_base_uncased/"
-BASE_MODEL_NAME = 'bert-base-uncased'
-MODEL_PATH = "model.bin"
-TRAINING_FILE = join(ROOT_DIR, "inputs/twits.json")
+# BASE_MODEL_PATH = "../inputs/bert_base_uncased/"
+# BASE_MODEL_NAME = 'bert-base-uncased'
+TRAINING_FILE = join(ROOT_DIR, "inputs", "twits.json")
+TEST_FILE = join(ROOT_DIR, "inputs", "test_twits.json")
+OUTPUT_PATH = join(ROOT_DIR, "outputs")
+MODEL_PATH = join(OUTPUT_PATH, "checkpoint", "model.pth")
+IMG_PATH = join(OUTPUT_PATH, "images", "loss_metric.png")
+OUTPUT_JSON = join(OUTPUT_PATH, "history.json")
+
 
 EPOCHS = 1
 EVERY_N_STEP = 500
@@ -44,5 +49,3 @@ LSTM_SIZE = 512
 OUTPUT_SIZE = 5
 LSTM_LAYER = 2
 DROP_RATE = 0.2
-
-MODEL_PATH = "model.bin"

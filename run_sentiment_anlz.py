@@ -2,6 +2,7 @@ import numpy as np
 from collections import Counter
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import json
 from sklearn.metrics import f1_score
 
 import torch
@@ -22,6 +23,7 @@ import src
 importlib.reload(src)
 
 
+
 def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_size,
                 model, optimizer, scheduler, device, grad_clip, epoch, steps,
                 every_n_step, history_dict):
@@ -29,11 +31,11 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
 
     # val_steps = len(val_dataloader)
 
-    train_progress_bar = tqdm(train_dataloader, desc=f"Epoch: {epoch}",
-                              leave=False, disable=False)
+    # train_progress_bar = tqdm(train_dataloader, desc=f"Epoch: {epoch}",
+    #                           leave=False, disable=False)
 
     # get a batch of data dict
-    for data in train_progress_bar:
+    for data in tqdm(train_dataloader, position=0, leave=True, ascii=True):
 
         steps += 1
         hidden = model.init_hidden(batch_size=train_batch_size)
@@ -115,6 +117,31 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
     return steps, val_f1, history_dict
 
 
+def predict_fn(text, model, vocab_to_id, cls_id, sep_id):
+    """
+    Make a prediction on a single sentence.
+    Args:
+        text: str. A message.
+    """
+    text = "Google is working on self driving cars, I'm bullish on $goog"
+    tokens = preprocess(text)
+
+    # Filter non-vocab words
+    filtered_tokens = [w for w in tokens if w in vocab_to_id]
+
+    # Convert words to ids
+    token_ids = [cls_id] + [vocab_to_id[w] for w in filtered_tokens] + [sep_id]
+
+    # Adding a batch dimension
+    input_ids = torch.from_numpy(np.array(token_ids)).unsqueeze(-1)
+
+    # Get the NN output
+    hidden = model.init_hidden(1)
+    model(hidden, input_ids, attention_mask=None, labels)
+
+
+
+
 def main():
     # load the json file and extract messages and sentiments
     messages, sentiments = load_data(config.TRAINING_FILE)
@@ -130,6 +157,7 @@ def main():
     bag_of_words = Counter([word for sent_lst in tokenized_msgs for word in sent_lst])
 
     # remove most common words such as 'the', 'and', etc. and rare words
+    # return the words that have not been filtered out
     filtered_words = rm_commom_words(bag_of_words, num_messages, config.LOW_CUTOFF, config.HIGH_CUTOFF)
 
     # Build the vocab mapping with filtered_words
@@ -238,5 +266,34 @@ def main():
         if val_f1 > best_f1:
             torch.save(model.state_dict(), config.MODEL_PATH)
             best_f1 = val_f1
+
+    with open(config.OUTPUT_JSON, 'w') as file:
+        json.dump(history_dict, file)
+
+
+    # -- inference process --
+    # Load the trained model for prediction
+    model = SentimentClassifier(len(vocab_to_id),
+                                config.EMBED_SIZE,
+                                config.LSTM_SIZE,
+                                config.OUTPUT_SIZE,
+                                config.LSTM_LAYER,
+                                config.DROP_RATE,
+                                uniq_sentiment)
+    model.embedding.weight.data.uniform_(-1, 1)
+    checkpoint = torch.load(config.MODEL_PATH,
+                            map_location=torch.device('cpu'))
+    model.load_state_dict(checkpoint)
+    model.to(device)
+
+    with open(config.TEST_FILE, 'r') as json_file:
+        data_dict = json.load(json_file)
+
+    test_msgs = [data['message_body'] for data in data_dict['data']]
+    tokenized_test_msgs = [preprocess(msg) for msg in test_msgs]
+    filtered_test_msgs = [[word for word in token_msg if word in vocab_to_id]
+                          for token_msg in tokenized_test_msgs]
+
+
 
 
