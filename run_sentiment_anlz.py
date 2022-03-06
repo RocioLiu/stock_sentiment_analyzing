@@ -26,6 +26,7 @@ from src.lr_scheduler import get_linear_schedule_with_warmup
 def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_size,
                 model, optimizer, scheduler, device, grad_clip, epoch, steps,
                 every_n_step, history_dict):
+
     model.train()
 
     # val_steps = len(val_dataloader)
@@ -34,7 +35,7 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
     #                           leave=False, disable=False)
 
     # get a batch of data dict
-    for data in tqdm(train_dataloader, position=0, leave=True, ascii=True):
+    for data in tqdm(train_dataloader, position=0, leave=True):
 
         steps += 1
         hidden = model.init_hidden(batch_size=train_batch_size)
@@ -57,9 +58,9 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
         #     if param.requires_grad:
         #         print(name, '\n', param.size(), '\n', param.data, '\n\n')
 
-
         if steps % every_n_step == 0:
             model.eval()
+
             y_true_list = []
             y_pred_list = []
 
@@ -107,6 +108,8 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
             history_dict['val_loss'].append(avg_val_loss)
             history_dict['val_acc'].append(avg_val_accuracy)
             history_dict['val_f1'].append(val_f1)
+
+            model.train()
 
             print(f"\nEpoch: {epoch}/{config.EPOCHS}    step: {steps}")
             print(f"- train_loss: {train_loss.item():.4f} - val_loss: {avg_val_loss:.4f}\n"
