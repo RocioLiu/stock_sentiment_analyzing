@@ -235,8 +235,7 @@ def main():
                                 config.LSTM_SIZE,
                                 config.OUTPUT_SIZE,
                                 config.LSTM_LAYER,
-                                config.DROP_RATE,
-                                uniq_sentiment)
+                                config.DROP_RATE)
     model.embedding.weight.data.uniform_(-1, 1)
     model.to(device)
 
@@ -294,8 +293,7 @@ def main():
                                 config.LSTM_SIZE,
                                 config.OUTPUT_SIZE,
                                 config.LSTM_LAYER,
-                                config.DROP_RATE,
-                                uniq_sentiment)
+                                config.DROP_RATE)
     model.embedding.weight.data.uniform_(-1, 1)
     checkpoint = torch.load(config.MODEL_PATH) # map_location=torch.device('cpu')
     model.load_state_dict(checkpoint)

@@ -37,7 +37,7 @@ from src import config
 
 class SentimentClassifier(nn.Module):
     def __init__(self, vocab_size, embed_size, lstm_size, output_size,
-                 lstm_layers, dropout, num_labels):
+                 lstm_layers, dropout):
         """
         Initialize the model by setting up the layers.
 
