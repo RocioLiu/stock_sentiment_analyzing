@@ -27,7 +27,7 @@ PAD_ID = 0
 LOW_CUTOFF = 5e-6
 HIGH_CUTOFF = 15
 NEUTRAL_SCORE = 2
-DATA_SPLIT_RATIO = 0.15
+DATA_SPLIT_RATIO = 0.2
 
 # TOKENIZER = transformers.BertTokenizer.from_pretrained(
 #     BASE_MODEL_NAME,

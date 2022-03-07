@@ -8,6 +8,7 @@ from sklearn.metrics import f1_score
 import torch
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
+from torch.optim import Adam
 
 from src import config
 from src.processor import load_data, preprocess, rm_commom_words, vocab_mapping, balance_classes
@@ -52,7 +53,7 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
         train_loss.backward()
         clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
-        scheduler.step()
+        # scheduler.step()
 
         # for name, param in model.named_parameters():
         #     if param.requires_grad:
@@ -61,11 +62,11 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
         if steps % every_n_step == 0:
             model.eval()
 
-            y_true_list = []
-            y_pred_list = []
-
             val_losses = []
             val_accuracy = []
+
+            y_true_list = []
+            y_pred_list = []
 
             for data in val_dataloader:
 
@@ -239,19 +240,20 @@ def main():
     model.embedding.weight.data.uniform_(-1, 1)
     model.to(device)
 
-    param_optimizer = list(model.named_parameters())
-    no_decay = ['bias']
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
-         'weight_decay': config.WEIGHT_DECAY},
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)],
-         'weight_decay': 0.0}
-    ]
+    # param_optimizer = list(model.named_parameters())
+    # no_decay = ['bias']
+    # optimizer_grouped_parameters = [
+    #     {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
+    #      'weight_decay': config.WEIGHT_DECAY},
+    #     {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)],
+    #      'weight_decay': 0.0}
+    # ]
 
-    optimizer = AdamW(optimizer_grouped_parameters, lr=config.LEARNING_RATE)
+    # optimizer = AdamW(optimizer_grouped_parameters, lr=config.LEARNING_RATE)
+    optimizer = Adam(model.parameters(), lr=config.LEARNING_RATE)
 
     NUM_TRAIN_STEPS = int(len(train_dataloader) * config.EPOCHS)
-    NUM_WARMUP_STEPS = int(NUM_TRAIN_STEPS * config.WARMUP_PROPORTION)
+    # NUM_WARMUP_STEPS = int(NUM_TRAIN_STEPS * config.WARMUP_PROPORTION)
     scheduler = get_linear_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=0,
                                                 num_training_steps=NUM_TRAIN_STEPS,
