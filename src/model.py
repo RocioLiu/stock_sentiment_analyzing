@@ -50,13 +50,13 @@ class SentimentClassifier(nn.Module):
             dropout : The dropout probability.
         """
         super(SentimentClassifier, self).__init__()
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
+        # self.vocab_size = vocab_size
+        # self.embed_size = embed_size
         self.lstm_size = lstm_size
-        self.output_size = output_size
+        # self.output_size = output_size
         self.lstm_layers = lstm_layers
-        self.dropout = dropout
-        self.num_labels = num_labels
+        # self.dropout = dropout
+        # self.num_labels = num_labels
 
         self.embedding = nn.Embedding(vocab_size, embed_size)
         self.lstm = nn.LSTM(embed_size, lstm_size, lstm_layers,

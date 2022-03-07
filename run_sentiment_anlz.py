@@ -113,7 +113,7 @@ def training_fn(train_dataloader, val_dataloader, train_batch_size, val_batch_si
 
             print(f"\nEpoch: {epoch}/{config.EPOCHS}    step: {steps}")
             print(f"- train_loss: {train_loss.item():.4f} - val_loss: {avg_val_loss:.4f}\n"
-                  f"- val_f1: {val_f1:.4f} \n")
+                  f"- val_accuracy: {avg_val_accuracy:.4f} - val_f1: {val_f1:.4f} \n")
 
     # return the last eval_f1 after traverse an epoch
     return steps, val_f1, history_dict
@@ -297,8 +297,7 @@ def main():
                                 config.DROP_RATE,
                                 uniq_sentiment)
     model.embedding.weight.data.uniform_(-1, 1)
-    checkpoint = torch.load(config.MODEL_PATH,
-                            map_location=torch.device('cpu'))
+    checkpoint = torch.load(config.MODEL_PATH) # map_location=torch.device('cpu')
     model.load_state_dict(checkpoint)
     model.to(device)
 
@@ -320,7 +319,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
